@@ -1,16 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function Home() {
   const COMMON_MAT_NUM = 2264;
   const UNIQUE_MAT_NUM = 2413;
+
   const [totalMatNum, setTotalMatNum] = useState(0);
   const [yellowMatNum, setYellowMatNum] = useState(0);
   const [purpleMatNum, setPurpleMatNum] = useState(0);
   const [blueMatNum, setBlueMatNum] = useState(0);
   const [greenMatNum, setGreenMatNum] = useState(0);
   const [isCommonMat, setIsCommonMat] = useState(true);
+
+  const [toast, setToast] = useState({
+    message: "",
+    type: "success" as "success" | "error",
+    show: false,
+  });
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  function showToast(msg: string, type: "success" | "error") {
+    // Clear previous timeout (fixes rapid click bug)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Show new toast
+    setToast({
+      message: msg,
+      type,
+      show: true,
+    });
+
+    // Set new timeout
+    timeoutRef.current = setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  }
 
   function calculate() {
     if (
@@ -19,7 +47,7 @@ export default function Home() {
       blueMatNum < 0 ||
       greenMatNum < 0
     ) {
-      alert("Please enter non-negative numbers.");
+      showToast("Please enter non-negative numbers.", "error");
       return;
     }
 
@@ -31,30 +59,48 @@ export default function Home() {
 
     setTotalMatNum(total);
     compareMatNum(total);
+    console.log(
+      "current status of toast,",
+      toast.message,
+      toast.type,
+      toast.show
+    );
   }
 
   function compareMatNum(total: number) {
     if (isCommonMat) {
       if (total > COMMON_MAT_NUM) {
-        alert("You have more than enough common mats!");
+        showToast("You have more than enough common mats!", "success");
       } else if (total < COMMON_MAT_NUM) {
-        alert("You need more common mats!");
+        showToast("You need more common mats!", "error");
       } else {
-        alert("You have exactly enough common mats!");
+        showToast("You have exactly enough common mats!", "success");
       }
     } else {
       if (total > UNIQUE_MAT_NUM) {
-        alert("You have more than enough unique mats!");
+        showToast("You have more than enough unique mats!", "success");
       } else if (total < UNIQUE_MAT_NUM) {
-        alert("You need more unique mats!");
+        showToast("You need more unique mats!", "error");
       } else {
-        alert("You have exactly enough unique mats!");
+        showToast("You have exactly enough unique mats!", "success");
       }
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-800 p-4 relative">
+      {/* Toast */}
+      <div
+        className={`absolute top-5 px-6 py-3 rounded-xl shadow-lg text-white font-medium transition-all duration-300
+          ${toast.type === "success" ? "bg-green-500" : "bg-red-500"} ${
+          toast.show
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-5 pointer-events-none"
+        } `}
+      >
+        {toast.message}
+      </div>
+
       <div className="bg-gray-600 shadow-xl rounded-2xl p-8 w-full max-w-md space-y-6">
         <h1 className="text-2xl font-bold text-center text-black">
           Wuwa Mat Calculator
@@ -113,6 +159,12 @@ export default function Home() {
         >
           Calculate
         </button>
+
+        <p>
+          {isCommonMat
+            ? `You need ${COMMON_MAT_NUM} common mats.`
+            : `You need ${UNIQUE_MAT_NUM} unique mats.`}
+        </p>
 
         <p className="text-center text-2xl text-white">
           Total Mats: {totalMatNum}
